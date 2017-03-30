@@ -4,11 +4,16 @@ var favicon = require('static-favicon');
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
+var validurl = require('valid-url');
+var mongo = require('mongodb').MongoClient
 
-var routes = require('./routes/index');
-var users = require('./routes/users');
+var url = "mongodb://vivekpadia:webbergen@ds145370.mlab.com:45370/sites"
+var number = 1;
+var query = {'site_name':'sityy things'};
+
 
 var app = express();
+app.set('port', process.env.PORT || 3000);
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -21,39 +26,53 @@ app.use(bodyParser.urlencoded());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/', routes);
-app.use('/users', users);
 
-/// catch 404 and forwarding to error handler
-app.use(function(req, res, next) {
-    var err = new Error('Not Found');
-    err.status = 404;
-    next(err);
-});
+app.get('/new/*', function(req, res){
+  var surl = req.protocol + '://' + req.get('host');
+  var name = req.params[0];
+  var i = 0;
+  if(validurl.isUri(name)){
+    mongo.connect(url, function(err, db){
+      console.log('hi')
+      var site = db.collection('sites')
+      site.insert({'site_name': name})
+      console.log('hi')
+      db.close();
+    })
+  }
+  else{
+    console.log("hellll")
+    res.send({"error" : "wrong url format, check your url"})
+  }
+})
 
-/// error handlers
+app.get('/database', function(req, res){
+  mongo.connect(url, function(err, db){
+    var site = db.collection('sites')
+    site.find({}).toArray(function(err, item){
+      for(term in item){
+        console.log(item[term])
+      }
+    })
+    db.close();
+  })
+})
 
-// development error handler
-// will print stacktrace
-if (app.get('env') === 'development') {
-    app.use(function(err, req, res, next) {
-        res.status(err.status || 500);
-        res.render('error', {
-            message: err.message,
-            error: err
-        });
-    });
-}
+app.get('/:short', function(req, res){
+  var surl = req.protocol + '://' + req.get('host');
+  var short = req.params.short;
+  short = Number(short)
+  mongo.connect(url, function(err, db){
+    var sites = db.collection('sites');
+    var shorter = sites.find({'number': short}).toArray(function(err, items){
+      console.log(items)
+    })
+    db.close()
+  })
+})
 
-// production error handler
-// no stacktraces leaked to user
-app.use(function(err, req, res, next) {
-    res.status(err.status || 500);
-    res.render('error', {
-        message: err.message,
-        error: {}
-    });
-});
-
+app.listen(app.get('port'), function(){
+  console.log("server listening to port " + app.get('port'))
+})
 
 module.exports = app;
