@@ -29,7 +29,9 @@ app.use(bodyParser.urlencoded());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-
+app.get('/', function(req, res){
+  res.send('hey')
+})
 
 app.get('/new/*', function(req, res){
   var surl = req.protocol + '://' + req.get('host');
